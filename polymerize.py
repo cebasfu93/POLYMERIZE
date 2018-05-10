@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 fnames = []
 times = []
-for i in range(1, len(sys.argv)):
+for i in range(1, len(sys.argv)-1):
     if i%2==1:
         fnames.append(sys.argv[i])
     else:
@@ -18,7 +18,7 @@ seq = []
 for i in range(len(times)):
     seq = seq + [i]*times[i]
 seq = np.array(seq, dtype='int')
-print(seq)
+
 all_restypes = []
 all_names = []
 all_resid = []
@@ -163,8 +163,8 @@ for i in range(1, len(seq)):
     N_prev += len(all_names[seq[i]])
 
 at = 0
-pdb = open("polymer.pdb", "w")
+pdb = open(sys.argv[-1], "w")
 pdb.close()
 for i in range(len(pol_names)):
     at+=1
-    write_pdb_block(pol_names[i], pol_restypes[i], pol_xyz[i], pol_resid[i], at, "polymer.pdb")
+    write_pdb_block(pol_names[i], pol_restypes[i], pol_xyz[i], pol_resid[i], at, sys.argv[-1])
