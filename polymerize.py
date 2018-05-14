@@ -38,10 +38,11 @@ def extend(vec, ext):
 
 def calc_angle(a, b, c):
     #Calculates the angle formed by a-b-c
+    a, b, c = np.array(a), np.array(b), np.array(c)
     ba = a - b
     bc = c - b
     cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    if cosine_angle-1<0.001 and cosine_angle-1>-0.001:
+    if cosine_angle-1<0.0001 and cosine_angle-1>-0.0001:
         angle = 0.0
     else:
         angle = np.arccos(cosine_angle)
@@ -51,20 +52,38 @@ def rot_Y(coords, angle):
     rot_mat = np.array([ [np.cos(angle), 0, np.sin(angle)], \
                         [0,     1,      0], \
                         [-np.sin(angle), 0, np.cos(angle)]])
-    coords = np.dot(rot_mat, coords.T).T
-    return coords
+    coords_rot = np.dot(rot_mat, coords.T).T
+    return coords_rot
 
 def rot_Z(coords, angle):
     rot_mat = np.array([ [np.cos(angle), -np.sin(angle), 0], \
                         [np.sin(angle),     np.cos(angle), 0], \
                         [0,         0,        1]])
-    coords = np.dot(rot_mat, coords.T).T
-    return coords
+    coords_rot = np.dot(rot_mat, coords.T).T
+    return coords_rot
 
-def D3plot(xyz):
+def D3plot(xyz, xyz1, head, head1):
     fig=plt.figure()
     ax = fig.add_subplot(111, projection="3d")
-    ax.scatter(xyz[:,0], xyz[:,1], xyz[:,2])
+    ax.scatter(xyz[:,0], xyz[:,1], xyz[:,2], 'b')
+    ax.plot([0, head[0]], [0, head[1]], [0,head[2]], 'b-')
+    ax.scatter(xyz1[:,0], xyz1[:,1], xyz1[:,2], color='r')
+    ax.plot([0, head1[0]], [0, head1[1]], [0,head1[2]], 'r-')
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    plt.show()
+
+def D3plot2(xyz1, xyz2):
+    fig=plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+    ax.scatter([0,xyz1[0]], [0,xyz1[1]], [0,xyz1[2]], color='b')
+    ax.scatter([0,xyz2[0]], [0,xyz2[1]], [0,xyz2[2]], color='g')
+    #ax.scatter([0,xyz3[0]], [0,xyz3[1]], [0,xyz3[2]], color='orange')
+    ax.set_aspect('equal')
+    ax.set_xlim((-2,12))
+    ax.set_ylim((-2,12))
+    ax.set_zlim((-7,7))
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
@@ -73,26 +92,39 @@ def D3plot(xyz):
 def align_2_X(coords, tail_ndx, head_ndx):
     coords = coords - coords[tail_ndx]
     xyz_tail = np.array([0,0,0])
-
     if head_ndx == -1:
         xyz_head = np.mean(coords, axis = 0)
     else:
         xyz_head = coords[head_ndx].flatten()
-    O = np.zeros(3)
+    if xyz_tail[0]>xyz_head[0]:
+        coords = rot_Z(coords, math.pi)
+
     xy = np.zeros(3)
     xy[0:2] = xyz_head[0:2]
-    theta = calc_angle(xyz_head, O, xy)
-    coords = rot_Y(coords, theta)
+    theta = calc_angle(xyz_head, xyz_tail, xy)
+    if xyz_head[2]>0:
+        coords = rot_Y(coords, -theta)
+    else:
+        coords = rot_Y(coords, theta)
+
 
     if head_ndx == -1:
         xyz_head = np.mean(coords, axis = 0)
     else:
         xyz_head = coords[head_ndx].flatten()
-    O = np.zeros(3)
+
     x = np.zeros(3)
     x[0] = xyz_head[0]
-    theta = calc_angle(xyz_head, O, x)
-    coords = rot_Z(coords, theta)
+    theta = calc_angle(xyz_head, xyz_tail, x)
+    if xyz_head[1]>0:
+        coords = rot_Z(coords, -theta)
+    else:
+        coords = rot_Z(coords, theta)
+
+    if head_ndx == -1:
+        xyz_head = np.mean(coords, axis = 0)
+    else:
+        xyz_head = coords[head_ndx].flatten()
     return coords
 
 def read_mol2(fname):
@@ -122,6 +154,7 @@ def read_mol2(fname):
     names = np.array(names)
     resid = np.array(resid, dtype='int')
     restypes = np.array(restypes)
+
     ndx_tail = np.where(np.logical_and(names == tail[0], resid == int(tail[1])))[0]
     ndx_head = np.where(np.logical_and(names == head[0], resid == int(head[1])))[0]
     if not ndx_head:
